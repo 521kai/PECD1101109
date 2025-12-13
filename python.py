@@ -1,4 +1,4 @@
-print ("hello")
+print ("你好")
 
 
 import tkinter as tk
