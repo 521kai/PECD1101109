@@ -39,6 +39,8 @@ class MinesweeperApp:
         self.new_btn.grid(row=0, column=6, padx=6)
         self.timer_label = tk.Label(self.top_frame, text='時間: 0')
         self.timer_label.grid(row=0, column=7, padx=6)
+        self.score_label = tk.Label(self.top_frame, text='分數: 0')
+        self.score_label.grid(row=0, column=8, padx=6)
 
         self.board_frame = tk.Frame(master)
         self.board_frame.pack(padx=8, pady=(0,8))
@@ -53,6 +55,7 @@ class MinesweeperApp:
         self.mines = 10
         self.start_time = None
         self.timer_running = False
+        self.score = 0
         self.new_game()
 
     def new_game(self):
@@ -84,6 +87,8 @@ class MinesweeperApp:
         self.revealed_count = 0
         self.game_over = False
         self.status.config(text='進行中')
+        self.score = 0
+        self.score_label.config(text=f'分數: {self.score}')
         self.start_time = time.time()
         if not self.timer_running:
             self.timer_running = True
@@ -122,13 +127,15 @@ class MinesweeperApp:
             self.reveal_all(mine_hit=(r,c))
             self.game_over = True
             self.status.config(text='遊戲結束')
-            messagebox.showinfo('失敗', '踩到地雷！')
+            elapsed = int(time.time() - self.start_time) if self.start_time else 0
+            messagebox.showinfo('失敗', f'踩到地雷！\n分數: {self.score}\n時間: {elapsed}s')
             return
         self.reveal(r, c)
         if self.check_win():
             self.game_over = True
             self.status.config(text='你贏了 🎉')
-            messagebox.showinfo('勝利', '恭喜，你已清除所有安全格！')
+            elapsed = int(time.time() - self.start_time) if self.start_time else 0
+            messagebox.showinfo('勝利', f'恭喜，你已清除所有安全格！\n分數: {self.score}\n時間: {elapsed}s')
 
     def on_right(self, r, c):
         if self.game_over:
@@ -137,8 +144,21 @@ class MinesweeperApp:
         b = self.buttons[r][c]
         if cell.revealed:
             return
-        cell.flagged = not cell.flagged
+        old_flag = cell.flagged
+        cell.flagged = not old_flag
+        # 調整分數：標記正確地雷 +1，標錯 -1；取消標記則反向
+        if cell.flagged:
+            if cell.is_mine:
+                self.score += 1
+            else:
+                self.score -= 1
+        else:
+            if cell.is_mine:
+                self.score -= 1
+            else:
+                self.score += 1
         b.config(text='🚩' if cell.flagged else '')
+        self.score_label.config(text=f'分數: {self.score}')
 
     def reveal(self, r, c):
         cell = self.grid[r][c]
@@ -147,6 +167,9 @@ class MinesweeperApp:
             return
         cell.revealed = True
         b.config(relief='sunken', state='disabled', bg='#ffffff')
+        # 揭示安全格得分
+        self.score += 1
+        self.score_label.config(text=f'分數: {self.score}')
         if cell.adj > 0:
             b.config(text=str(cell.adj), fg=self.color_for_num(cell.adj))
             self.revealed_count += 1
